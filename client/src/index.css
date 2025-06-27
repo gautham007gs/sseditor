@@ -81,39 +81,77 @@
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.5s ease-in-out;
   }
   
   .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp 0.4s ease-out;
+  }
+  
+  .animate-bounce-in {
+    animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
   
   .drop-zone {
     border: 2px dashed hsl(var(--border));
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .drop-zone.drag-over {
     border-color: hsl(var(--primary));
-    background-color: hsl(var(--primary) / 0.05);
+    background-color: hsl(var(--primary) / 0.08);
+    transform: scale(1.02);
+    box-shadow: 0 10px 25px hsl(var(--primary) / 0.15);
   }
   
   .canvas-container {
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 250px);
     overflow: auto;
   }
   
   .tool-btn {
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .tool-btn:hover {
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.15);
+  }
+  
+  .tool-btn:active {
+    transform: translateY(0);
   }
   
   .tool-btn.active {
     background-color: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.25);
+  }
+  
+  /* Mobile touch optimizations */
+  @media (max-width: 768px) {
+    .tool-btn:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .tool-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .canvas-container {
+      max-height: calc(100vh - 300px);
+    }
+  }
+  
+  /* Smooth scrolling */
+  .overflow-x-auto {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -130,5 +168,24 @@
   to { 
     transform: translateY(0); 
     opacity: 1; 
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }

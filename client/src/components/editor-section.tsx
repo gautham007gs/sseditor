@@ -59,10 +59,14 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
   } = useImageEditor();
 
   useEffect(() => {
-    if (canvasRef.current) {
-      initializeEditor(canvasRef.current);
+    if (canvasRef.current && imageData) {
+      const editor = initializeEditor(canvasRef.current);
+      if (editor && imageData) {
+        // Load the image into the editor when component mounts
+        editor.loadImage(imageData).catch(console.error);
+      }
     }
-  }, [initializeEditor]);
+  }, [initializeEditor, imageData]);
 
   useEffect(() => {
     if (selectedElement && selectedElement.id.startsWith('text_')) {
@@ -390,9 +394,36 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
 
   return (
     <div className="animate-fade-in">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Toolbar */}
-        <div className="lg:col-span-2 order-2 lg:order-1">
+      {/* Mobile Tools Bar */}
+      <div className="lg:hidden mb-4">
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex overflow-x-auto space-x-2 pb-2">
+              {tools.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <Button
+                    key={tool.id}
+                    variant={selectedTool === tool.id ? "default" : "ghost"}
+                    className={`flex-shrink-0 tool-btn ${
+                      selectedTool === tool.id ? 'active' : ''
+                    }`}
+                    size="sm"
+                    onClick={() => setSelectedTool(tool.id as Tool)}
+                  >
+                    <Icon className="w-4 h-4 mr-1" />
+                    <span className="text-xs">{tool.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+        {/* Desktop Left Toolbar */}
+        <div className="hidden lg:block lg:col-span-2 order-2 lg:order-1">
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold text-slate-700 mb-4">Tools</h3>
@@ -457,17 +488,19 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
         {/* Canvas Area */}
         <div className="lg:col-span-8 order-1 lg:order-2">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="canvas-container relative">
-                <canvas 
-                  ref={canvasRef}
-                  className="max-w-full h-auto border border-slate-200 rounded-lg mx-auto block cursor-crosshair"
-                  style={{ maxHeight: '70vh' }}
-                />
-                <div className="mt-4 text-center text-sm text-slate-500">
+                <div className="bg-white rounded-lg border-2 border-dashed border-slate-300 p-2 sm:p-4">
+                  <canvas 
+                    ref={canvasRef}
+                    className="max-w-full h-auto rounded-lg mx-auto block cursor-crosshair shadow-sm"
+                    style={{ maxHeight: '60vh', minHeight: '200px' }}
+                  />
+                </div>
+                <div className="mt-2 sm:mt-4 text-center text-xs sm:text-sm text-slate-500">
                   {selectedElement ? 
-                    `Selected: ${selectedElement.id.startsWith('text_') ? 'Text' : 'Shape'} - Click and drag to move` :
-                    "Click on elements to select and edit them"
+                    `Selected: ${selectedElement.id.startsWith('text_') ? 'Text' : 'Shape'} - Tap and drag to move` :
+                    "Tap on elements to select and edit them"
                   }
                 </div>
               </div>
@@ -475,8 +508,20 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
           </Card>
         </div>
         
-        {/* Right Properties Panel */}
-        <div className="lg:col-span-2 order-3">
+        {/* Mobile Properties Panel */}
+        <div className="lg:hidden order-3 mb-4">
+          <Card>
+            <CardContent className="p-3">
+              <h3 className="font-semibold text-slate-700 mb-3 text-sm">Properties</h3>
+              <div id="toolProperties">
+                {renderToolProperties()}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Desktop Right Properties Panel */}
+        <div className="hidden lg:block lg:col-span-2 order-3">
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold text-slate-700 mb-4">Properties</h3>

@@ -49,29 +49,29 @@ export default function FeaturesSection() {
   ];
 
   return (
-    <div className="mt-16">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold text-slate-800 mb-4">
-          Powerful Editing Tools
+    <div className="mt-12 sm:mt-16">
+      <div className="text-center mb-8 sm:mb-12">
+        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-3 sm:mb-4">
+          Professional Editing Tools
         </h2>
-        <p className="text-lg text-slate-600">
-          Everything you need to edit screenshots and images professionally
+        <p className="text-base sm:text-lg text-slate-600 px-4">
+          Everything you need to create stunning screenshots and images
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         {features.map((feature, index) => {
           const Icon = feature.icon;
           return (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
-                  <Icon className="w-6 h-6" />
+            <Card key={index} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-sm">
+              <CardContent className="p-4 sm:p-6">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 ${feature.color} rounded-xl flex items-center justify-center mb-3 sm:mb-4 shadow-sm`}>
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">
+                <h3 className="text-lg sm:text-xl font-semibold text-slate-800 mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-slate-600">
+                <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
                   {feature.description}
                 </p>
               </CardContent>

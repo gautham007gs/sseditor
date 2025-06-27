@@ -196,9 +196,12 @@ export class ImageEditor {
   }
 
   applyFilter(brightness: number, contrast: number, saturation: number) {
-    this.ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
-    this.redraw();
+    // Store filter values for redraw
+    this.currentFilters = { brightness, contrast, saturation };
+    this.redrawCanvas();
   }
+
+  private currentFilters = { brightness: 100, contrast: 100, saturation: 100 };
 
   addText(text: string, x: number, y: number, fontSize: number = 24, color: string = '#000000') {
     if (!text.trim()) return;
@@ -312,9 +315,14 @@ export class ImageEditor {
     // Clear the canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Draw the original image if available
+    // Draw the original image if available with filters
     if (this.originalImage) {
+      // Apply filters to the image
+      this.ctx.filter = `brightness(${this.currentFilters.brightness}%) contrast(${this.currentFilters.contrast}%) saturate(${this.currentFilters.saturation}%)`;
       this.ctx.drawImage(this.originalImage, 0, 0, this.canvas.width, this.canvas.height);
+      
+      // Reset filter for elements
+      this.ctx.filter = 'none';
     }
     
     // Draw all elements

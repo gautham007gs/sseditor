@@ -85,6 +85,15 @@ export function useImageEditor() {
     return false;
   }, []);
 
+  const resetEditor = useCallback(() => {
+    setImageData(null);
+    setIsEditorVisible(false);
+    setImageInfo(null);
+    setSelectedElement(null);
+    editorRef.current = null;
+    canvasRef.current = null;
+  }, []);
+
   return {
     imageData,
     isEditorVisible,
@@ -101,5 +110,6 @@ export function useImageEditor() {
     deleteSelectedElement,
     undo,
     redo,
+    resetEditor,
   };
 }
