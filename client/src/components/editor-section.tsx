@@ -14,8 +14,14 @@ import {
   Maximize, 
   Undo, 
   Redo,
-  RotateCcw
+  RotateCcw,
+  Circle,
+  ArrowRight,
+  Trash2,
+  Plus
 } from "lucide-react";
+import { useImageEditor } from "@/hooks/use-image-editor";
+import { CanvasElement, TextElement, ShapeElement } from "@/lib/image-editor";
 
 interface EditorSectionProps {
   imageData: string | null;
@@ -37,40 +43,39 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
   const [textContent, setTextContent] = useState('');
   const [fontSize, setFontSize] = useState([24]);
   const [textColor, setTextColor] = useState('#000000');
+  const [shapeColor, setShapeColor] = useState('#ff0000');
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const { 
+    selectedElement, 
+    initializeEditor, 
+    applyFilter, 
+    addText, 
+    addShape, 
+    updateElement, 
+    deleteSelectedElement, 
+    undo, 
+    redo 
+  } = useImageEditor();
 
   useEffect(() => {
-    if (imageData && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const img = new Image();
-      img.onload = () => {
-        // Calculate canvas size while maintaining aspect ratio
-        const maxWidth = 800;
-        const maxHeight = 600;
-        let { width, height } = img;
-        
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width = width * ratio;
-          height = height * ratio;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        setCanvasSize({ width, height });
-        
-        // Apply filters
-        ctx.filter = `brightness(${brightness[0]}%) contrast(${contrast[0]}%) saturate(${saturation[0]}%)`;
-        ctx.drawImage(img, 0, 0, width, height);
-      };
-      img.src = imageData;
+    if (canvasRef.current) {
+      initializeEditor(canvasRef.current);
     }
-  }, [imageData, brightness, contrast, saturation]);
+  }, [initializeEditor]);
+
+  useEffect(() => {
+    if (selectedElement && selectedElement.id.startsWith('text_')) {
+      const textElement = selectedElement as TextElement;
+      setTextContent(textElement.text);
+      setFontSize([textElement.fontSize]);
+      setTextColor(textElement.color);
+    }
+  }, [selectedElement]);
+
+  useEffect(() => {
+    applyFilter(brightness[0], contrast[0], saturation[0]);
+  }, [brightness, contrast, saturation, applyFilter]);
 
   const tools = [
     { id: 'select', label: 'Select', icon: MousePointer },
@@ -81,6 +86,28 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
     { id: 'resize', label: 'Resize', icon: Maximize },
   ];
 
+  const handleAddText = () => {
+    if (textContent.trim()) {
+      addText(textContent, 50, 50, fontSize[0], textColor);
+      setTextContent('');
+    }
+  };
+
+  const handleAddShape = (type: 'rectangle' | 'circle' | 'arrow') => {
+    addShape(type, 50, 50, 100, 100, shapeColor);
+  };
+
+  const handleUpdateText = () => {
+    if (selectedElement && selectedElement.id.startsWith('text_')) {
+      updateElement(selectedElement.id, {
+        text: textContent,
+        fontSize: fontSize[0],
+        color: textColor,
+        width: canvasRef.current?.getContext('2d')?.measureText(textContent).width || 0
+      });
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -90,6 +117,108 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
   };
 
   const renderToolProperties = () => {
+    // If an element is selected, show its properties
+    if (selectedElement) {
+      if (selectedElement.id.startsWith('text_')) {
+        const textElement = selectedElement as TextElement;
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-slate-700">Selected Text</h4>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={deleteSelectedElement}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            <div>
+              <Label htmlFor="text-content" className="text-sm font-medium text-slate-700">
+                Text
+              </Label>
+              <Input
+                id="text-content"
+                value={textContent}
+                onChange={(e) => setTextContent(e.target.value)}
+                onBlur={handleUpdateText}
+                placeholder="Enter text"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-slate-700">
+                Font Size: {fontSize[0]}px
+              </Label>
+              <Slider
+                value={fontSize}
+                onValueChange={(value) => {
+                  setFontSize(value);
+                  if (selectedElement) {
+                    updateElement(selectedElement.id, { fontSize: value[0] });
+                  }
+                }}
+                min={12}
+                max={72}
+                step={1}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="text-color" className="text-sm font-medium text-slate-700">
+                Color
+              </Label>
+              <Input
+                id="text-color"
+                type="color"
+                value={textColor}
+                onChange={(e) => {
+                  setTextColor(e.target.value);
+                  if (selectedElement) {
+                    updateElement(selectedElement.id, { color: e.target.value });
+                  }
+                }}
+                className="mt-1 h-10"
+              />
+            </div>
+          </div>
+        );
+      } else {
+        const shapeElement = selectedElement as ShapeElement;
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-slate-700">Selected {shapeElement.type}</h4>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={deleteSelectedElement}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            <div>
+              <Label htmlFor="shape-color" className="text-sm font-medium text-slate-700">
+                Color
+              </Label>
+              <Input
+                id="shape-color"
+                type="color"
+                value={shapeElement.color}
+                onChange={(e) => {
+                  updateElement(selectedElement.id, { color: e.target.value });
+                }}
+                className="mt-1 h-10"
+              />
+            </div>
+          </div>
+        );
+      }
+    }
+
+    // Otherwise show tool-specific properties
     switch (selectedTool) {
       case 'text':
         return (
@@ -130,6 +259,54 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
                 onChange={(e) => setTextColor(e.target.value)}
                 className="mt-1 h-10"
               />
+            </div>
+            <Button onClick={handleAddText} className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Text
+            </Button>
+          </div>
+        );
+
+      case 'shapes':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="shape-color" className="text-sm font-medium text-slate-700">
+                Color
+              </Label>
+              <Input
+                id="shape-color"
+                type="color"
+                value={shapeColor}
+                onChange={(e) => setShapeColor(e.target.value)}
+                className="mt-1 h-10"
+              />
+            </div>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => handleAddShape('rectangle')} 
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Square className="w-4 h-4 mr-2" />
+                Add Rectangle
+              </Button>
+              <Button 
+                onClick={() => handleAddShape('circle')} 
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Circle className="w-4 h-4 mr-2" />
+                Add Circle
+              </Button>
+              <Button 
+                onClick={() => handleAddShape('arrow')} 
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <ArrowRight className="w-4 h-4 mr-2" />
+                Add Arrow
+              </Button>
             </div>
           </div>
         );
@@ -202,7 +379,10 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
       default:
         return (
           <div className="text-sm text-slate-500">
-            Select a tool to see properties
+            {selectedElement ? 
+              "Click on an element to edit it" : 
+              "Select a tool or click an element"
+            }
           </div>
         );
     }
@@ -239,15 +419,35 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
               <div className="border-t border-slate-200 mt-6 pt-4">
                 <h4 className="font-medium text-slate-600 mb-3">Actions</h4>
                 <div className="flex space-x-2">
-                  <Button variant="ghost" size="sm" className="flex-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => undo()}
+                    title="Undo"
+                  >
                     <Undo className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="flex-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => redo()}
+                    title="Redo"
+                  >
                     <Redo className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="flex-1">
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
+                  {selectedElement && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 text-red-500 hover:text-red-700"
+                      onClick={deleteSelectedElement}
+                      title="Delete Selected"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -258,12 +458,18 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
         <div className="lg:col-span-8 order-1 lg:order-2">
           <Card>
             <CardContent className="p-6">
-              <div className="canvas-container">
+              <div className="canvas-container relative">
                 <canvas 
                   ref={canvasRef}
-                  className="max-w-full h-auto border border-slate-200 rounded-lg mx-auto block"
+                  className="max-w-full h-auto border border-slate-200 rounded-lg mx-auto block cursor-crosshair"
                   style={{ maxHeight: '70vh' }}
                 />
+                <div className="mt-4 text-center text-sm text-slate-500">
+                  {selectedElement ? 
+                    `Selected: ${selectedElement.id.startsWith('text_') ? 'Text' : 'Shape'} - Click and drag to move` :
+                    "Click on elements to select and edit them"
+                  }
+                </div>
               </div>
             </CardContent>
           </Card>

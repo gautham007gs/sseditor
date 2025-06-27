@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback } from "react";
-import { ImageEditor, ImageInfo } from "@/lib/image-editor";
+import { ImageEditor, ImageInfo, CanvasElement } from "@/lib/image-editor";
 
 export function useImageEditor() {
   const [imageData, setImageData] = useState<string | null>(null);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null);
+  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(null);
   const editorRef = useRef<ImageEditor | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -12,21 +13,21 @@ export function useImageEditor() {
     setImageData(dataUrl);
     setIsEditorVisible(true);
     
-    // Create canvas if it doesn't exist
-    if (!canvasRef.current) {
-      canvasRef.current = document.createElement('canvas');
-    }
-    
     try {
-      if (!editorRef.current) {
-        editorRef.current = new ImageEditor(canvasRef.current);
-      }
-      
-      const info = await editorRef.current.loadImage(dataUrl);
-      setImageInfo(info);
+      const info = await editorRef.current?.loadImage(dataUrl);
+      setImageInfo(info || null);
     } catch (error) {
       console.error('Error loading image:', error);
     }
+  }, []);
+
+  const initializeEditor = useCallback((canvas: HTMLCanvasElement) => {
+    if (!editorRef.current && canvas) {
+      editorRef.current = new ImageEditor(canvas);
+      editorRef.current.setElementSelectCallback(setSelectedElement);
+      canvasRef.current = canvas;
+    }
+    return editorRef.current;
   }, []);
 
   const downloadImage = useCallback(() => {
@@ -45,9 +46,28 @@ export function useImageEditor() {
     }
   }, []);
 
-  const addText = useCallback((text: string, x: number, y: number, fontSize: number, color: string) => {
+  const addText = useCallback((text: string, x: number = 50, y: number = 50, fontSize: number = 24, color: string = '#000000') => {
     if (editorRef.current) {
       editorRef.current.addText(text, x, y, fontSize, color);
+    }
+  }, []);
+
+  const addShape = useCallback((type: 'rectangle' | 'circle' | 'arrow', x: number = 50, y: number = 50, width: number = 100, height: number = 100, color: string = '#ff0000') => {
+    if (editorRef.current) {
+      editorRef.current.addShape(type, x, y, width, height, color);
+    }
+  }, []);
+
+  const updateElement = useCallback((elementId: string, updates: Partial<CanvasElement>) => {
+    if (editorRef.current) {
+      editorRef.current.updateElement(elementId, updates);
+    }
+  }, []);
+
+  const deleteSelectedElement = useCallback(() => {
+    if (editorRef.current) {
+      editorRef.current.deleteSelectedElement();
+      setSelectedElement(null);
     }
   }, []);
 
@@ -69,11 +89,16 @@ export function useImageEditor() {
     imageData,
     isEditorVisible,
     imageInfo,
+    selectedElement,
     canvasRef,
     showEditor,
+    initializeEditor,
     downloadImage,
     applyFilter,
     addText,
+    addShape,
+    updateElement,
+    deleteSelectedElement,
     undo,
     redo,
   };

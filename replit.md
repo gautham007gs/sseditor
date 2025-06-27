@@ -29,8 +29,11 @@ ScreenEdit Pro is a modern web-based screenshot and image editing application bu
 
 ### Image Editor Engine
 - **Canvas-based Processing**: HTML5 Canvas for real-time image manipulation
+- **Interactive Elements**: Click-to-select and drag-to-move functionality for text and shapes
+- **Element Management**: Full CRUD operations on text and shape elements with live editing
 - **Tool System**: Modular tool architecture (select, crop, text, shapes, filters, resize)
 - **History Management**: Undo/redo functionality with ImageData snapshots
+- **Real-time Editing**: Live property updates for selected elements (font size, color, position)
 - **Export System**: Multiple format support (PNG, JPG) with quality optimization
 
 ### UI Components
@@ -89,6 +92,12 @@ ScreenEdit Pro is a modern web-based screenshot and image editing application bu
 
 ## Changelog
 - June 27, 2025. Initial setup
+- June 27, 2025. Enhanced image editor with interactive element editing:
+  - Added click-to-select functionality for text and shapes
+  - Implemented drag-and-drop repositioning of elements
+  - Added real-time property editing for selected elements
+  - Enhanced UI with element-specific tools and deletion options
+  - Added comprehensive help guide for users
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

@@ -5,11 +5,42 @@ export interface ImageInfo {
   format: string;
 }
 
+export interface TextElement {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+  fontFamily: string;
+  width: number;
+  height: number;
+}
+
+export interface ShapeElement {
+  id: string;
+  type: 'rectangle' | 'circle' | 'arrow';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  strokeWidth: number;
+}
+
+export type CanvasElement = TextElement | ShapeElement;
+
 export class ImageEditor {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private history: ImageData[] = [];
   private historyIndex: number = -1;
+  private originalImage: HTMLImageElement | null = null;
+  private elements: CanvasElement[] = [];
+  private selectedElement: CanvasElement | null = null;
+  private isDragging = false;
+  private dragOffset = { x: 0, y: 0 };
+  private onElementSelect: ((element: CanvasElement | null) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -18,12 +49,26 @@ export class ImageEditor {
       throw new Error('Could not get canvas context');
     }
     this.ctx = ctx;
+    this.setupEventListeners();
+  }
+
+  setElementSelectCallback(callback: (element: CanvasElement | null) => void) {
+    this.onElementSelect = callback;
+  }
+
+  private setupEventListeners() {
+    this.canvas.addEventListener('click', this.handleCanvasClick.bind(this));
+    this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
   }
 
   loadImage(imageData: string): Promise<ImageInfo> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
+        this.originalImage = img;
+        
         // Calculate canvas size while maintaining aspect ratio
         const maxWidth = 800;
         const maxHeight = 600;
@@ -38,8 +83,9 @@ export class ImageEditor {
         this.canvas.width = width;
         this.canvas.height = height;
         
-        // Draw image on canvas
-        this.ctx.drawImage(img, 0, 0, width, height);
+        // Clear elements and redraw everything
+        this.elements = [];
+        this.redrawCanvas();
         
         // Save to history
         this.saveToHistory();
@@ -56,16 +102,154 @@ export class ImageEditor {
     });
   }
 
+  private handleCanvasClick(event: MouseEvent) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Check if click is on any element
+    const clickedElement = this.getElementAtPosition(x, y);
+    
+    if (clickedElement !== this.selectedElement) {
+      this.selectedElement = clickedElement;
+      this.redrawCanvas();
+      
+      if (this.onElementSelect) {
+        this.onElementSelect(clickedElement);
+      }
+    }
+  }
+
+  private handleMouseDown(event: MouseEvent) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    const element = this.getElementAtPosition(x, y);
+    if (element) {
+      this.selectedElement = element;
+      this.isDragging = true;
+      this.dragOffset = {
+        x: x - element.x,
+        y: y - element.y
+      };
+    }
+  }
+
+  private handleMouseMove(event: MouseEvent) {
+    if (!this.isDragging || !this.selectedElement) return;
+    
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    this.selectedElement.x = x - this.dragOffset.x;
+    this.selectedElement.y = y - this.dragOffset.y;
+    
+    this.redrawCanvas();
+  }
+
+  private handleMouseUp() {
+    if (this.isDragging) {
+      this.isDragging = false;
+      this.saveToHistory();
+    }
+  }
+
+  private getElementAtPosition(x: number, y: number): CanvasElement | null {
+    // Check in reverse order (top to bottom)
+    for (let i = this.elements.length - 1; i >= 0; i--) {
+      const element = this.elements[i];
+      
+      if (x >= element.x && x <= element.x + element.width &&
+          y >= element.y && y <= element.y + element.height) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  getSelectedElement(): CanvasElement | null {
+    return this.selectedElement;
+  }
+
+  updateElement(elementId: string, updates: Partial<CanvasElement>) {
+    const element = this.elements.find(el => el.id === elementId);
+    if (element) {
+      Object.assign(element, updates);
+      this.redrawCanvas();
+      this.saveToHistory();
+    }
+  }
+
+  deleteSelectedElement() {
+    if (this.selectedElement) {
+      this.elements = this.elements.filter(el => el.id !== this.selectedElement!.id);
+      this.selectedElement = null;
+      this.redrawCanvas();
+      this.saveToHistory();
+      
+      if (this.onElementSelect) {
+        this.onElementSelect(null);
+      }
+    }
+  }
+
   applyFilter(brightness: number, contrast: number, saturation: number) {
     this.ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
     this.redraw();
   }
 
-  addText(text: string, x: number, y: number, fontSize: number, color: string) {
-    this.ctx.font = `${fontSize}px Inter, sans-serif`;
-    this.ctx.fillStyle = color;
-    this.ctx.fillText(text, x, y);
+  addText(text: string, x: number, y: number, fontSize: number = 24, color: string = '#000000') {
+    if (!text.trim()) return;
+    
+    const textElement: TextElement = {
+      id: `text_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      text,
+      x,
+      y,
+      fontSize,
+      color,
+      fontFamily: 'Inter, sans-serif',
+      width: this.getTextWidth(text, fontSize),
+      height: fontSize
+    };
+    
+    this.elements.push(textElement);
+    this.selectedElement = textElement;
+    this.redrawCanvas();
     this.saveToHistory();
+    
+    if (this.onElementSelect) {
+      this.onElementSelect(textElement);
+    }
+  }
+
+  addShape(type: 'rectangle' | 'circle' | 'arrow', x: number, y: number, width: number = 100, height: number = 100, color: string = '#ff0000') {
+    const shapeElement: ShapeElement = {
+      id: `shape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      x,
+      y,
+      width,
+      height,
+      color,
+      strokeWidth: 2
+    };
+    
+    this.elements.push(shapeElement);
+    this.selectedElement = shapeElement;
+    this.redrawCanvas();
+    this.saveToHistory();
+    
+    if (this.onElementSelect) {
+      this.onElementSelect(shapeElement);
+    }
+  }
+
+  private getTextWidth(text: string, fontSize: number): number {
+    this.ctx.font = `${fontSize}px Inter, sans-serif`;
+    return this.ctx.measureText(text).width;
   }
 
   crop(x: number, y: number, width: number, height: number) {
@@ -121,8 +305,109 @@ export class ImageEditor {
   }
 
   private redraw() {
-    // This method would redraw the original image with current filters
-    // For simplicity, we're not implementing full redraw here
+    this.redrawCanvas();
+  }
+
+  private redrawCanvas() {
+    // Clear the canvas
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    // Draw the original image if available
+    if (this.originalImage) {
+      this.ctx.drawImage(this.originalImage, 0, 0, this.canvas.width, this.canvas.height);
+    }
+    
+    // Draw all elements
+    this.elements.forEach(element => {
+      this.drawElement(element);
+      
+      // Draw selection border if this element is selected
+      if (element === this.selectedElement) {
+        this.drawSelectionBorder(element);
+      }
+    });
+  }
+
+  private drawElement(element: CanvasElement) {
+    if ('text' in element) {
+      this.drawTextElement(element as TextElement);
+    } else {
+      this.drawShapeElement(element as ShapeElement);
+    }
+  }
+
+  private drawTextElement(element: TextElement) {
+    this.ctx.font = `${element.fontSize}px ${element.fontFamily}`;
+    this.ctx.fillStyle = element.color;
+    this.ctx.fillText(element.text, element.x, element.y + element.fontSize);
+  }
+
+  private drawShapeElement(element: ShapeElement) {
+    this.ctx.strokeStyle = element.color;
+    this.ctx.lineWidth = element.strokeWidth;
+    
+    switch (element.type) {
+      case 'rectangle':
+        this.ctx.strokeRect(element.x, element.y, element.width, element.height);
+        break;
+      case 'circle':
+        this.ctx.beginPath();
+        this.ctx.arc(
+          element.x + element.width / 2,
+          element.y + element.height / 2,
+          Math.min(element.width, element.height) / 2,
+          0,
+          2 * Math.PI
+        );
+        this.ctx.stroke();
+        break;
+      case 'arrow':
+        this.drawArrow(element);
+        break;
+    }
+  }
+
+  private drawArrow(element: ShapeElement) {
+    const startX = element.x;
+    const startY = element.y;
+    const endX = element.x + element.width;
+    const endY = element.y + element.height;
+    
+    // Draw arrow line
+    this.ctx.beginPath();
+    this.ctx.moveTo(startX, startY);
+    this.ctx.lineTo(endX, endY);
+    this.ctx.stroke();
+    
+    // Draw arrowhead
+    const headLength = 15;
+    const angle = Math.atan2(endY - startY, endX - startX);
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(endX, endY);
+    this.ctx.lineTo(
+      endX - headLength * Math.cos(angle - Math.PI / 6),
+      endY - headLength * Math.sin(angle - Math.PI / 6)
+    );
+    this.ctx.moveTo(endX, endY);
+    this.ctx.lineTo(
+      endX - headLength * Math.cos(angle + Math.PI / 6),
+      endY - headLength * Math.sin(angle + Math.PI / 6)
+    );
+    this.ctx.stroke();
+  }
+
+  private drawSelectionBorder(element: CanvasElement) {
+    this.ctx.strokeStyle = '#007bff';
+    this.ctx.lineWidth = 2;
+    this.ctx.setLineDash([5, 5]);
+    this.ctx.strokeRect(
+      element.x - 2,
+      element.y - 2,
+      element.width + 4,
+      element.height + 4
+    );
+    this.ctx.setLineDash([]);
   }
 
   private estimateFileSize(dataUrl: string): number {

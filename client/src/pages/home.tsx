@@ -80,10 +80,30 @@ export default function Home() {
 
           {/* Editor Section */}
           {isEditorVisible && (
-            <EditorSection 
-              imageData={imageData}
-              imageInfo={imageInfo}
-            />
+            <>
+              {/* Quick help */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <div className="bg-blue-500 rounded-full p-1">
+                    <HelpCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-800 mb-2">How to Edit Your Screenshot</h3>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• <strong>Select text or shapes</strong>: Click directly on any element to select and edit it</li>
+                      <li>• <strong>Move elements</strong>: Click and drag selected items to reposition them</li>
+                      <li>• <strong>Add new elements</strong>: Use the tools on the left to add text, shapes, or apply filters</li>
+                      <li>• <strong>Edit properties</strong>: Selected element properties appear in the right panel</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <EditorSection 
+                imageData={imageData}
+                imageInfo={imageInfo}
+              />
+            </>
           )}
 
           {/* Features Section */}
