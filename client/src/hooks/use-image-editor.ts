@@ -47,8 +47,12 @@ export function useImageEditor() {
   }, []);
 
   const addText = useCallback((text: string, x: number = 50, y: number = 50, fontSize: number = 24, color: string = '#000000') => {
+    console.log('Hook addText called with:', { text, x, y, fontSize, color });
+    console.log('editorRef.current:', !!editorRef.current);
     if (editorRef.current) {
       editorRef.current.addText(text, x, y, fontSize, color);
+    } else {
+      console.log('No editor instance available');
     }
   }, []);
 

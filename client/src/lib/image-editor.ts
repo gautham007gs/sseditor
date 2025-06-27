@@ -103,12 +103,16 @@ export class ImageEditor {
   }
 
   private handleCanvasClick(event: MouseEvent) {
+    console.log('Canvas clicked at:', event.clientX, event.clientY);
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
+    console.log('Canvas relative position:', x, y);
+    console.log('Current elements:', this.elements);
     
     // Check if click is on any element
     const clickedElement = this.getElementAtPosition(x, y);
+    console.log('Clicked element:', clickedElement);
     
     if (clickedElement !== this.selectedElement) {
       this.selectedElement = clickedElement;
@@ -204,7 +208,11 @@ export class ImageEditor {
   private currentFilters = { brightness: 100, contrast: 100, saturation: 100 };
 
   addText(text: string, x: number, y: number, fontSize: number = 24, color: string = '#000000') {
-    if (!text.trim()) return;
+    console.log('ImageEditor.addText called with:', { text, x, y, fontSize, color });
+    if (!text.trim()) {
+      console.log('Empty text, not adding element');
+      return;
+    }
     
     const textElement: TextElement = {
       id: `text_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -218,7 +226,9 @@ export class ImageEditor {
       height: fontSize
     };
     
+    console.log('Created text element:', textElement);
     this.elements.push(textElement);
+    console.log('Total elements after adding text:', this.elements.length);
     this.selectedElement = textElement;
     this.redrawCanvas();
     this.saveToHistory();

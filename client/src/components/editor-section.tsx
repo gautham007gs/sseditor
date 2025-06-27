@@ -91,9 +91,12 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
   ];
 
   const handleAddText = () => {
+    console.log('Adding text:', textContent, fontSize[0], textColor);
     if (textContent.trim()) {
       addText(textContent, 50, 50, fontSize[0], textColor);
       setTextContent('');
+    } else {
+      console.log('No text content to add');
     }
   };
 
@@ -449,7 +452,7 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
               
               <div className="border-t border-slate-200 mt-6 pt-4">
                 <h4 className="font-medium text-slate-600 mb-3">Actions</h4>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 mb-3">
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -480,6 +483,20 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
                     </Button>
                   )}
                 </div>
+                
+                {/* Quick Test Button */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    console.log('Test button clicked');
+                    addText('Test Text', 100, 100, 24, '#ff0000');
+                  }}
+                  title="Test: Add Text"
+                >
+                  🔧 Test Add Text
+                </Button>
               </div>
             </CardContent>
           </Card>
