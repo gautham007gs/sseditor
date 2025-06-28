@@ -15,6 +15,9 @@ export interface TextElement {
   fontFamily: string;
   width: number;
   height: number;
+  isOcrDetected?: boolean;
+  confidence?: number;
+  originalText?: string;
 }
 
 export interface ShapeElement {
@@ -197,6 +200,131 @@ export class ImageEditor {
         this.onElementSelect(null);
       }
     }
+  }
+
+  async extractTextFromImage(): Promise<TextElement[]> {
+    try {
+      const imageData = this.export('jpeg', 0.8);
+      
+      const response = await fetch('/api/extract-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageData }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.textElements) {
+        // Convert percentage-based coordinates to canvas pixels
+        const canvasWidth = this.canvas.width;
+        const canvasHeight = this.canvas.height;
+        
+        const textElements: TextElement[] = result.textElements.map((item: any) => ({
+          id: item.id,
+          text: item.text,
+          x: (item.x / 100) * canvasWidth,
+          y: (item.y / 100) * canvasHeight,
+          width: (item.width / 100) * canvasWidth,
+          height: (item.height / 100) * canvasHeight,
+          fontSize: item.fontSize,
+          fontFamily: item.fontFamily,
+          color: item.color,
+          isOcrDetected: true,
+          confidence: item.confidence,
+          originalText: item.text
+        }));
+
+        return textElements;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Failed to extract text:', error);
+      throw new Error('Failed to extract text from image');
+    }
+  }
+
+  async analyzeAndLoadOcrText(): Promise<{ textElements: TextElement[], description: string }> {
+    try {
+      const imageData = this.export('jpeg', 0.8);
+      
+      const response = await fetch('/api/analyze-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageData }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Convert percentage-based coordinates to canvas pixels
+        const canvasWidth = this.canvas.width;
+        const canvasHeight = this.canvas.height;
+        
+        const textElements: TextElement[] = (result.textElements || []).map((item: any) => ({
+          id: item.id,
+          text: item.text,
+          x: (item.x / 100) * canvasWidth,
+          y: (item.y / 100) * canvasHeight,
+          width: (item.width / 100) * canvasWidth,
+          height: (item.height / 100) * canvasHeight,
+          fontSize: item.fontSize,
+          fontFamily: item.fontFamily,
+          color: item.color,
+          isOcrDetected: true,
+          confidence: item.confidence,
+          originalText: item.text
+        }));
+
+        // Add detected text elements to the canvas
+        this.elements.push(...textElements);
+        this.redrawCanvas();
+        this.saveToHistory();
+
+        return {
+          textElements,
+          description: result.imageDescription || 'Image analyzed'
+        };
+      }
+      
+      return { textElements: [], description: 'No analysis results' };
+    } catch (error) {
+      console.error('Failed to analyze image:', error);
+      throw new Error('Failed to analyze image');
+    }
+  }
+
+  updateOcrTextElement(elementId: string, newText: string) {
+    const element = this.elements.find(el => el.id === elementId) as TextElement;
+    if (element && 'text' in element) {
+      element.text = newText;
+      
+      // Recalculate width based on new text
+      const ctx = this.ctx;
+      ctx.font = `${element.fontSize}px ${element.fontFamily}`;
+      element.width = ctx.measureText(newText).width;
+      
+      this.redrawCanvas();
+      this.saveToHistory();
+    }
+  }
+
+  getOcrTextElements(): TextElement[] {
+    return this.elements.filter((el): el is TextElement => 
+      'text' in el && (el as TextElement).isOcrDetected === true
+    );
   }
 
   applyFilter(brightness: number, contrast: number, saturation: number) {

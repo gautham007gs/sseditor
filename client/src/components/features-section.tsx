@@ -5,11 +5,18 @@ import {
   Filter, 
   Maximize, 
   Square, 
-  Download 
+  Download,
+  ScanText
 } from "lucide-react";
 
 export default function FeaturesSection() {
   const features = [
+    {
+      icon: ScanText,
+      title: "AI Text Recognition",
+      description: "Automatically detect and extract text from screenshots with AI. Edit text while preserving original formatting.",
+      color: "bg-gradient-to-br from-purple-100 to-pink-100 text-purple-600"
+    },
     {
       icon: Crop,
       title: "Smart Cropping",

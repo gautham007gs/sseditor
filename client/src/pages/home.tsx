@@ -84,20 +84,20 @@ export default function Home() {
                     <h3 className="font-semibold text-blue-800 mb-3 text-sm sm:text-base">Quick Start Guide</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm text-blue-700">
                       <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span><strong>Select & Edit</strong>: Tap elements to edit them instantly</span>
+                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <span><strong>AI Text Extract</strong>: Auto-detect text in images</span>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span><strong>Move Around</strong>: Drag elements to reposition</span>
+                        <span><strong>Edit in Place</strong>: Click detected text to modify</span>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span><strong>Add Elements</strong>: Use tools to add text & shapes</span>
+                        <span><strong>Drag & Drop</strong>: Move elements around easily</span>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span><strong>Apply Filters</strong>: Enhance with professional effects</span>
+                        <span><strong>Smart Editing</strong>: Preserves original formatting</span>
                       </div>
                     </div>
                   </div>

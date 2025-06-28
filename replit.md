@@ -1,7 +1,7 @@
 # ScreenEdit Pro - Online Screenshot Editor
 
 ## Overview
-ScreenEdit Pro is a modern web-based screenshot and image editing application built with React, TypeScript, and Express.js. The application provides a free, no-signup-required image editing experience with professional-grade tools for cropping, filtering, text overlay, and more.
+ScreenEdit Pro is a modern web-based screenshot and image editing application built with React, TypeScript, and Express.js. The application provides a free, no-signup-required image editing experience with professional-grade tools for cropping, filtering, text overlay, and AI-powered OCR text recognition for seamless screenshot editing.
 
 ## System Architecture
 
@@ -29,9 +29,11 @@ ScreenEdit Pro is a modern web-based screenshot and image editing application bu
 
 ### Image Editor Engine
 - **Canvas-based Processing**: HTML5 Canvas for real-time image manipulation
+- **AI Text Recognition**: OpenAI GPT-4o powered OCR for automatic text extraction from images
 - **Interactive Elements**: Click-to-select and drag-to-move functionality for text and shapes
+- **Smart Text Editing**: Preserves original formatting (font size, color, style) when editing detected text
 - **Element Management**: Full CRUD operations on text and shape elements with live editing
-- **Tool System**: Modular tool architecture (select, crop, text, shapes, filters, resize)
+- **Tool System**: Modular tool architecture (select, OCR extract, crop, text, shapes, filters, resize)
 - **History Management**: Undo/redo functionality with ImageData snapshots
 - **Real-time Editing**: Live property updates for selected elements (font size, color, position)
 - **Export System**: Multiple format support (PNG, JPG) with quality optimization
@@ -50,8 +52,10 @@ ScreenEdit Pro is a modern web-based screenshot and image editing application bu
 ## Data Flow
 
 1. **Image Upload**: User selects/drops image file → File validation → Base64 conversion → ImageEditor initialization
-2. **Image Processing**: Tool selection → Canvas manipulation → Real-time preview → History tracking
-3. **Export Process**: User triggers download → Canvas export → File download via browser
+2. **OCR Processing**: User triggers text extraction → OpenAI GPT-4o analysis → Text element detection → Canvas overlay
+3. **Text Editing**: User selects detected text → In-place editing with preserved formatting → Real-time canvas updates
+4. **Image Processing**: Tool selection → Canvas manipulation → Real-time preview → History tracking
+5. **Export Process**: User triggers download → Canvas export → File download via browser
 
 ## External Dependencies
 
@@ -98,6 +102,13 @@ ScreenEdit Pro is a modern web-based screenshot and image editing application bu
   - Added real-time property editing for selected elements
   - Enhanced UI with element-specific tools and deletion options
   - Added comprehensive help guide for users
+- June 28, 2025. Added AI-powered OCR text recognition:
+  - Integrated OpenAI GPT-4o for automatic text extraction from images
+  - Built OCR API endpoints with Zod validation
+  - Enhanced ImageEditor class with OCR functionality
+  - Added OCR tool to editor interface with confidence scoring
+  - Implemented smart text editing that preserves original formatting
+  - Updated UI to highlight OCR capabilities in features and help sections
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

@@ -18,7 +18,10 @@ import {
   Circle,
   ArrowRight,
   Trash2,
-  Plus
+  Plus,
+  ScanText,
+  Eye,
+  Edit3
 } from "lucide-react";
 import { useImageEditor } from "@/hooks/use-image-editor";
 import { CanvasElement, TextElement, ShapeElement } from "@/lib/image-editor";
@@ -33,7 +36,7 @@ interface EditorSectionProps {
   } | null;
 }
 
-type Tool = 'select' | 'crop' | 'text' | 'shapes' | 'filters' | 'resize';
+type Tool = 'select' | 'crop' | 'text' | 'shapes' | 'filters' | 'resize' | 'ocr';
 
 export default function EditorSection({ imageData, imageInfo }: EditorSectionProps) {
   const [selectedTool, setSelectedTool] = useState<Tool>('select');
@@ -44,6 +47,9 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
   const [fontSize, setFontSize] = useState([24]);
   const [textColor, setTextColor] = useState('#000000');
   const [shapeColor, setShapeColor] = useState('#ff0000');
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [ocrResults, setOcrResults] = useState<TextElement[]>([]);
+  const [showOcrOverlay, setShowOcrOverlay] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { 
@@ -83,6 +89,7 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
 
   const tools = [
     { id: 'select', label: 'Select', icon: MousePointer },
+    { id: 'ocr', label: 'Extract Text', icon: ScanText },
     { id: 'crop', label: 'Crop', icon: Crop },
     { id: 'text', label: 'Text', icon: Type },
     { id: 'shapes', label: 'Shapes', icon: Square },
@@ -113,6 +120,75 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
         width: canvasRef.current?.getContext('2d')?.measureText(textContent).width || 0
       });
     }
+  };
+
+  const handleExtractText = async () => {
+    if (!canvasRef.current) return;
+    
+    setIsOcrLoading(true);
+    try {
+      const canvas = canvasRef.current;
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      
+      const response = await fetch('/api/analyze-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageData }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.textElements) {
+        // Convert percentage-based coordinates to canvas pixels
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        
+        const detectedTexts: TextElement[] = result.textElements.map((item: any) => ({
+          id: item.id,
+          text: item.text,
+          x: (item.x / 100) * canvasWidth,
+          y: (item.y / 100) * canvasHeight,
+          width: (item.width / 100) * canvasWidth,
+          height: (item.height / 100) * canvasHeight,
+          fontSize: item.fontSize,
+          fontFamily: item.fontFamily,
+          color: item.color,
+          isOcrDetected: true,
+          confidence: item.confidence,
+          originalText: item.text
+        }));
+
+        setOcrResults(detectedTexts);
+        setShowOcrOverlay(true);
+        setSelectedTool('select');
+        
+        // Add detected text to the canvas
+        detectedTexts.forEach(textElement => {
+          addText(textElement.text, textElement.x, textElement.y, textElement.fontSize, textElement.color);
+        });
+        
+        console.log(`Found ${detectedTexts.length} text elements`);
+      } else {
+        console.log('No text found in image');
+      }
+    } catch (error) {
+      console.error('OCR extraction failed:', error);
+    } finally {
+      setIsOcrLoading(false);
+    }
+  };
+
+  const handleOcrTextEdit = (textElement: TextElement, newText: string) => {
+    updateElement(textElement.id, {
+      text: newText,
+      width: canvasRef.current?.getContext('2d')?.measureText(newText).width || 0
+    });
   };
 
   const formatFileSize = (bytes: number) => {
@@ -227,6 +303,65 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
 
     // Otherwise show tool-specific properties
     switch (selectedTool) {
+      case 'ocr':
+        return (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h4 className="font-medium text-slate-700 mb-2">Extract Text from Image</h4>
+              <p className="text-sm text-slate-500 mb-4">
+                AI will identify and extract all text from your image automatically
+              </p>
+              <Button 
+                onClick={handleExtractText} 
+                disabled={isOcrLoading}
+                className="w-full"
+              >
+                {isOcrLoading ? (
+                  <>
+                    <Eye className="w-4 h-4 mr-2 animate-pulse" />
+                    Analyzing Image...
+                  </>
+                ) : (
+                  <>
+                    <ScanText className="w-4 h-4 mr-2" />
+                    Extract All Text
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {ocrResults.length > 0 && (
+              <div className="mt-4">
+                <h5 className="font-medium text-slate-700 mb-2">
+                  Found {ocrResults.length} text elements
+                </h5>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {ocrResults.map((textElement, index) => (
+                    <div key={textElement.id} className="p-2 bg-slate-50 rounded border">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-slate-500">
+                          Text {index + 1} ({Math.round((textElement.confidence || 0) * 100)}% confidence)
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setTextContent(textElement.text);
+                            setSelectedTool('text');
+                          }}
+                          className="p-1 h-6"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <p className="text-sm font-mono">{textElement.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
       case 'text':
         return (
           <div className="space-y-4">
