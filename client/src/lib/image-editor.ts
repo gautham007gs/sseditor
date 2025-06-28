@@ -60,10 +60,16 @@ export class ImageEditor {
   }
 
   private setupEventListeners() {
+    // Mouse events
     this.canvas.addEventListener('click', this.handleCanvasClick.bind(this));
     this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
     this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
     this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+    
+    // Touch events for mobile support
+    this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+    this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+    this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: false });
   }
 
   loadImage(imageData: string): Promise<ImageInfo> {
@@ -92,6 +98,8 @@ export class ImageEditor {
         
         // Save to history
         this.saveToHistory();
+        
+        console.log('Canvas setup complete:', { width, height, elements: this.elements.length });
         
         resolve({
           width: img.naturalWidth,
@@ -159,6 +167,52 @@ export class ImageEditor {
   private handleMouseUp() {
     if (this.isDragging) {
       this.isDragging = false;
+      this.saveToHistory();
+    }
+  }
+
+  private handleTouchStart(event: TouchEvent) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    const rect = this.canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    const clickedElement = this.getElementAtPosition(x, y);
+    if (clickedElement) {
+      this.selectedElement = clickedElement;
+      this.isDragging = true;
+      this.dragOffset = {
+        x: x - clickedElement.x,
+        y: y - clickedElement.y
+      };
+      
+      if (this.onElementSelect) {
+        this.onElementSelect(clickedElement);
+      }
+      this.redrawCanvas();
+    }
+  }
+
+  private handleTouchMove(event: TouchEvent) {
+    event.preventDefault();
+    if (!this.isDragging || !this.selectedElement) return;
+    
+    const touch = event.touches[0];
+    const rect = this.canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    this.selectedElement.x = x - this.dragOffset.x;
+    this.selectedElement.y = y - this.dragOffset.y;
+    
+    this.redrawCanvas();
+  }
+
+  private handleTouchEnd(event: TouchEvent) {
+    event.preventDefault();
+    this.isDragging = false;
+    if (this.selectedElement) {
       this.saveToHistory();
     }
   }

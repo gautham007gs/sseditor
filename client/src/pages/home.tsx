@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit3, HelpCircle, Download, Menu, Check, Plus } from "lucide-react";
 import UploadSection from "@/components/upload-section";
-import EditorSection from "@/components/editor-section";
+import EnhancedEditor from "@/components/enhanced-editor";
 import FeaturesSection from "@/components/features-section";
 import SEOHead from "@/components/seo-head";
 import { useImageEditor } from "@/hooks/use-image-editor";
@@ -104,7 +104,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <EditorSection 
+              <EnhancedEditor 
                 imageData={imageData}
                 imageInfo={imageInfo}
               />

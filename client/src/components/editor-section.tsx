@@ -67,9 +67,15 @@ export default function EditorSection({ imageData, imageInfo }: EditorSectionPro
   useEffect(() => {
     if (canvasRef.current && imageData) {
       const editor = initializeEditor(canvasRef.current);
-      if (editor && imageData) {
+      if (editor) {
         // Load the image into the editor when component mounts
-        editor.loadImage(imageData).catch(console.error);
+        editor.loadImage(imageData)
+          .then((info) => {
+            console.log('Image loaded successfully:', info);
+          })
+          .catch((error) => {
+            console.error('Error loading image:', error);
+          });
       }
     }
   }, [initializeEditor, imageData]);
