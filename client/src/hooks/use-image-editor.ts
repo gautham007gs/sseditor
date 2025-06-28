@@ -10,15 +10,27 @@ export function useImageEditor() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const showEditor = useCallback(async (file: File, dataUrl: string) => {
+    console.log('showEditor called with:', { fileName: file.name, dataUrlLength: dataUrl.length });
     setImageData(dataUrl);
     setIsEditorVisible(true);
     
-    try {
-      const info = await editorRef.current?.loadImage(dataUrl);
-      setImageInfo(info || null);
-    } catch (error) {
-      console.error('Error loading image:', error);
-    }
+    // Extract basic image info without requiring editor
+    const img = new Image();
+    img.onload = () => {
+      setImageInfo({
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        size: file.size,
+        format: file.type.split('/')[1] || 'unknown'
+      });
+      console.log('Image info set:', {
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        size: file.size,
+        format: file.type
+      });
+    };
+    img.src = dataUrl;
   }, []);
 
   const initializeEditor = useCallback((canvas: HTMLCanvasElement) => {

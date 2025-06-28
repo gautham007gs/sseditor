@@ -75,27 +75,50 @@ export default function EnhancedEditor({ imageData, imageInfo }: EnhancedEditorP
       const editor = initializeEditor(canvasRef.current);
       if (editor) {
         console.log('Editor initialized, loading image...');
+        
+        // Load image with proper error handling and display
         editor.loadImage(imageData)
           .then((info) => {
-            console.log('Image loaded successfully:', info);
-            // Force a redraw to ensure image is visible
+            console.log('Image loaded successfully in editor:', info);
+            
+            // Ensure canvas is visible and properly sized
+            const canvas = canvasRef.current!;
+            console.log('Canvas after image load:', {
+              width: canvas.width,
+              height: canvas.height,
+              clientWidth: canvas.clientWidth,
+              clientHeight: canvas.clientHeight
+            });
+            
+            // Make sure canvas has proper styling for display
+            canvas.style.display = 'block';
+            canvas.style.maxWidth = '100%';
+            canvas.style.height = 'auto';
+            
+            // Force a redraw
             setTimeout(() => {
-              console.log('Triggering redraw after image load');
-              const canvas = canvasRef.current!;
-              console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
-              console.log('Canvas style:', canvas.style.width, 'x', canvas.style.height);
-            }, 100);
+              console.log('Forcing redraw after image load');
+              // Trigger a manual redraw to ensure image appears
+              const ctx = canvas.getContext('2d');
+              if (ctx && editor) {
+                // Clear and redraw
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Force redraw through editor
+                editor.applyFilter(100, 100, 100); // This triggers redraw
+              }
+            }, 50);
           })
           .catch((error) => {
-            console.error('Error loading image:', error);
+            console.error('Error loading image in editor:', error);
           });
       } else {
         console.error('Failed to initialize editor');
       }
     } else {
-      console.log('Missing canvas or image data:', { 
+      console.log('Missing requirements:', { 
         hasCanvas: !!canvasRef.current, 
-        hasImageData: !!imageData 
+        hasImageData: !!imageData,
+        imageDataLength: imageData?.length || 0
       });
     }
   }, [initializeEditor, imageData]);
@@ -638,14 +661,34 @@ export default function EnhancedEditor({ imageData, imageInfo }: EnhancedEditorP
         {/* Canvas area */}
         <div className="flex-1 p-6 bg-slate-50 min-h-[500px]">
           <div className="flex items-center justify-center h-full">
-            <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-slate-300 p-4 max-w-full">
+            <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-slate-300 p-4 max-w-full relative">
+              {/* Canvas for editing */}
               <canvas 
                 ref={canvasRef}
-                className="max-w-full max-h-full border border-slate-200 rounded shadow-sm"
+                className="max-w-full max-h-full border border-slate-200 rounded shadow-sm block"
                 style={{ 
-                  cursor: selectedTool === 'select' ? 'pointer' : 'crosshair'
+                  cursor: selectedTool === 'select' ? 'pointer' : 'crosshair',
+                  display: 'block'
                 }}
               />
+              
+              {/* Fallback image display in case canvas doesn't show */}
+              {imageData && (
+                <img 
+                  src={imageData}
+                  alt="Uploaded image"
+                  className="max-w-full max-h-full border border-slate-200 rounded shadow-sm hidden"
+                  style={{ 
+                    position: 'absolute',
+                    top: '16px',
+                    left: '16px',
+                    zIndex: -1
+                  }}
+                  onLoad={() => {
+                    console.log('Fallback image loaded successfully');
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
