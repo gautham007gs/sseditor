@@ -662,32 +662,35 @@ export default function EnhancedEditor({ imageData, imageInfo }: EnhancedEditorP
         <div className="flex-1 p-6 bg-slate-50 min-h-[500px]">
           <div className="flex items-center justify-center h-full">
             <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-slate-300 p-4 max-w-full relative">
-              {/* Canvas for editing */}
-              <canvas 
-                ref={canvasRef}
-                className="max-w-full max-h-full border border-slate-200 rounded shadow-sm block"
-                style={{ 
-                  cursor: selectedTool === 'select' ? 'pointer' : 'crosshair',
-                  display: 'block'
-                }}
-              />
-              
-              {/* Fallback image display in case canvas doesn't show */}
-              {imageData && (
-                <img 
-                  src={imageData}
-                  alt="Uploaded image"
-                  className="max-w-full max-h-full border border-slate-200 rounded shadow-sm hidden"
-                  style={{ 
-                    position: 'absolute',
-                    top: '16px',
-                    left: '16px',
-                    zIndex: -1
-                  }}
-                  onLoad={() => {
-                    console.log('Fallback image loaded successfully');
-                  }}
-                />
+              {/* Simple image display - primary method */}
+              {imageData ? (
+                <div className="relative">
+                  <img 
+                    src={imageData}
+                    alt="Uploaded image"
+                    className="max-w-full max-h-full border border-slate-200 rounded shadow-sm block"
+                    onLoad={() => {
+                      console.log('Image loaded successfully!');
+                    }}
+                    onError={() => {
+                      console.error('Image failed to load');
+                    }}
+                  />
+                  
+                  {/* Canvas for editing - overlay on top */}
+                  <canvas 
+                    ref={canvasRef}
+                    className="absolute top-0 left-0 max-w-full max-h-full border border-slate-200 rounded shadow-sm opacity-50"
+                    style={{ 
+                      cursor: selectedTool === 'select' ? 'pointer' : 'crosshair',
+                      display: 'none' // Hide for now until canvas issues are fixed
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="text-center text-slate-500 py-12">
+                  <p>No image uploaded yet</p>
+                </div>
               )}
             </div>
           </div>

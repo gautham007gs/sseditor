@@ -260,46 +260,29 @@ export class ImageEditor {
     try {
       const imageData = this.export('jpeg', 0.8);
       
-      const response = await fetch('/api/extract-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ imageData }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      // Use client-side OCR instead of API
+      const { clientOCR } = await import('./client-ocr');
+      const ocrElements = await clientOCR.extractTextFromImage(imageData);
       
-      if (result.success && result.textElements) {
-        // Convert percentage-based coordinates to canvas pixels
-        const canvasWidth = this.canvas.width;
-        const canvasHeight = this.canvas.height;
-        
-        const textElements: TextElement[] = result.textElements.map((item: any) => ({
-          id: item.id,
-          text: item.text,
-          x: (item.x / 100) * canvasWidth,
-          y: (item.y / 100) * canvasHeight,
-          width: (item.width / 100) * canvasWidth,
-          height: (item.height / 100) * canvasHeight,
-          fontSize: item.fontSize,
-          fontFamily: item.fontFamily,
-          color: item.color,
-          isOcrDetected: true,
-          confidence: item.confidence,
-          originalText: item.text
-        }));
+      // Convert OCR elements to TextElements with canvas coordinates
+      const textElements: TextElement[] = ocrElements.map(element => ({
+        id: element.id,
+        text: element.text,
+        x: element.x,
+        y: element.y,
+        fontSize: element.fontSize,
+        color: element.color,
+        fontFamily: element.fontFamily,
+        width: element.width,
+        height: element.height,
+        isOcrDetected: true,
+        confidence: element.confidence,
+        originalText: element.originalText
+      }));
 
-        return textElements;
-      }
-      
-      return [];
+      return textElements;
     } catch (error) {
-      console.error('Failed to extract text:', error);
+      console.error('Client-side OCR extraction failed:', error);
       throw new Error('Failed to extract text from image');
     }
   }
